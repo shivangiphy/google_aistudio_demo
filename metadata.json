@@ -1,0 +1,5 @@
+{
+  "name": "Quantify - Smart Counter Tracker",
+  "description": "A high-performance counter application to track habits, goals, and inventory with beautiful timeseries visualizations and tag-based organization.",
+  "requestFramePermissions": []
+}
