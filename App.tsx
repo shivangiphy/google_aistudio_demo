@@ -4,18 +4,15 @@ import { Counter, CounterEntry, AppState } from './types';
 import * as DB from './db';
 import CountersList from './components/CountersList';
 import CounterDetail from './components/CounterDetail';
-import NewCounter from './components/NewCounter';
+import CounterForm from './components/CounterForm';
 import CounterHistory from './components/CounterHistory';
 
 const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [state, setState] = useState<AppState>({ counters: [], entries: [] });
-  const [currentView, setCurrentView] = useState<'list' | 'detail' | 'new' | 'history'>('list');
+  const [currentView, setCurrentView] = useState<'list' | 'detail' | 'new' | 'edit' | 'history'>('list');
   const [selectedCounterId, setSelectedCounterId] = useState<string | null>(null);
 
-  /**
-   * Refreshes the React state from the SQLite database
-   */
   const refreshState = useCallback(() => {
     setState({
       counters: DB.getAllCounters(),
@@ -23,9 +20,6 @@ const App: React.FC = () => {
     });
   }, []);
 
-  /**
-   * Initialize the database engine on component mount
-   */
   useEffect(() => {
     const init = async () => {
       try {
@@ -44,6 +38,12 @@ const App: React.FC = () => {
     DB.addCounter(counter);
     refreshState();
     setCurrentView('list');
+  }, [refreshState]);
+
+  const updateCounter = useCallback((counter: Counter) => {
+    DB.updateCounter(counter);
+    refreshState();
+    setCurrentView('detail');
   }, [refreshState]);
 
   const deleteCounter = useCallback((id: string) => {
@@ -117,20 +117,30 @@ const App: React.FC = () => {
         return (
           <CounterDetail 
             counter={selectedCounter}
-            total={getCounterTotal(selectedCounter.id)}
+            entries={state.entries.filter(e => e.counterId === selectedCounter.id)}
             onBack={() => setCurrentView('list')}
             onIncrement={() => addEntry(selectedCounter.id, 1)}
             onDecrement={() => addEntry(selectedCounter.id, -1)}
             onReset={() => resetCounter(selectedCounter.id)}
             onViewHistory={() => setCurrentView('history')}
+            onEdit={() => setCurrentView('edit')}
             onDelete={() => deleteCounter(selectedCounter.id)}
           />
         );
       case 'new':
         return (
-          <NewCounter 
+          <CounterForm 
             onSave={addCounter}
             onCancel={() => setCurrentView('list')}
+          />
+        );
+      case 'edit':
+        if (!selectedCounter) return null;
+        return (
+          <CounterForm 
+            initialData={selectedCounter}
+            onSave={updateCounter}
+            onCancel={() => setCurrentView('detail')}
           />
         );
       case 'history':

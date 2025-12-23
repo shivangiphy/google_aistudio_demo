@@ -86,14 +86,26 @@ const CountersList: React.FC<Props> = ({
             className="group flex flex-col rounded-2xl bg-white dark:bg-card-dark p-5 shadow-sm border border-transparent hover:border-primary/20 transition-all"
           >
             <div className="flex items-start justify-between mb-5" onClick={() => onSelectCounter(counter.id)}>
-              <div className="flex flex-col gap-1 cursor-pointer">
-                <span className="text-lg font-bold leading-tight">{counter.name}</span>
-                <div className="flex items-center gap-2">
-                  {counter.tags.map(tag => (
-                    <span key={tag} className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary uppercase tracking-wider">
-                      {tag}
-                    </span>
-                  ))}
+              <div className="flex items-center gap-4 cursor-pointer overflow-hidden">
+                <div 
+                  className="size-14 rounded-full flex items-center justify-center shrink-0 overflow-hidden bg-slate-100 dark:bg-[#131f22] border border-slate-200 dark:border-white/5"
+                  style={{ color: counter.iconType === 'icon' ? counter.color : 'inherit' }}
+                >
+                   {counter.iconType === 'icon' ? (
+                      <i className={`${counter.icon || 'fa-solid fa-star'} text-xl`}></i>
+                   ) : (
+                      <img src={counter.icon} className="w-full h-full object-cover" alt="" />
+                   )}
+                </div>
+                <div className="flex flex-col gap-1 min-w-0">
+                  <span className="text-lg font-bold leading-tight truncate">{counter.name}</span>
+                  <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+                    {counter.tags.map(tag => (
+                      <span key={tag} className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary uppercase tracking-wider shrink-0">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
               <button className="text-gray-400 hover:text-white p-1">

@@ -2,7 +2,6 @@
 import { Counter, CounterEntry } from './types';
 import { INITIAL_DATA } from './constants';
 
-// Declare the global initSqlJs function provided by the script tag in index.html
 declare global {
   interface Window {
     initSqlJs: any;
@@ -11,9 +10,6 @@ declare global {
 
 let db: any;
 
-/**
- * Utility to convert Uint8Array to Base64 string for storage in LocalStorage
- */
 function uint8ArrayToBase64(u8: Uint8Array): string {
   let binary = '';
   const len = u8.byteLength;
@@ -23,9 +19,6 @@ function uint8ArrayToBase64(u8: Uint8Array): string {
   return btoa(binary);
 }
 
-/**
- * Utility to convert Base64 string to Uint8Array for database loading
- */
 function base64ToUint8Array(base64: string): Uint8Array {
   const binary = atob(base64);
   const len = binary.length;
@@ -36,18 +29,12 @@ function base64ToUint8Array(base64: string): Uint8Array {
   return u8;
 }
 
-/**
- * Initialize the SQLite database, load existing data, or seed initial data
- */
 export async function initDB() {
-  // Use the global initSqlJs from the script tag instead of an ES6 import
-  // to explicitly avoid Node-specific environment detection which causes 'fs' errors.
   if (!window.initSqlJs) {
     throw new Error("initSqlJs is not loaded. Ensure the script tag is present in index.html");
   }
 
   const SQL = await window.initSqlJs({
-    // Locate the WASM file from the same CDN to ensure matching versions
     locateFile: (file: string) => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/${file}`
   });
 
@@ -63,7 +50,6 @@ export async function initDB() {
     db = new SQL.Database();
   }
 
-  // Ensure tables exist
   db.run(`
     CREATE TABLE IF NOT EXISTS counters (
       id TEXT PRIMARY KEY,
@@ -73,7 +59,9 @@ export async function initDB() {
       tags TEXT,
       initialCount INTEGER,
       goal INTEGER,
-      createdAt INTEGER
+      createdAt INTEGER,
+      icon TEXT,
+      iconType TEXT DEFAULT 'icon'
     );
     CREATE TABLE IF NOT EXISTS entries (
       id TEXT PRIMARY KEY,
@@ -83,7 +71,14 @@ export async function initDB() {
     );
   `);
 
-  // Seed initial data if the database is brand new
+  // Handle simple column migration for existing databases
+  try {
+    db.run("ALTER TABLE counters ADD COLUMN icon TEXT");
+  } catch(e) {}
+  try {
+    db.run("ALTER TABLE counters ADD COLUMN iconType TEXT DEFAULT 'icon'");
+  } catch(e) {}
+
   const res = db.exec("SELECT COUNT(*) FROM counters");
   const count = res[0].values[0][0];
   if (count === 0) {
@@ -91,15 +86,23 @@ export async function initDB() {
   }
 }
 
-/**
- * Seeds the database with provided initial data constants
- */
 function seedInitialData() {
-  const stmtCounter = db.prepare("INSERT INTO counters VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+  const stmtCounter = db.prepare("INSERT INTO counters VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
   const stmtEntry = db.prepare("INSERT INTO entries VALUES (?, ?, ?, ?)");
 
   INITIAL_DATA.counters.forEach(c => {
-    stmtCounter.run([c.id, c.name, c.unit, c.color, JSON.stringify(c.tags), c.initialCount, c.goal || null, c.createdAt]);
+    stmtCounter.run([
+      c.id, 
+      c.name, 
+      c.unit, 
+      c.color, 
+      JSON.stringify(c.tags), 
+      c.initialCount, 
+      c.goal || null, 
+      c.createdAt,
+      (c as any).icon || 'fa-solid fa-star',
+      (c as any).iconType || 'icon'
+    ]);
   });
 
   INITIAL_DATA.entries.forEach(e => {
@@ -111,9 +114,6 @@ function seedInitialData() {
   persist();
 }
 
-/**
- * Saves the current state of the database to localStorage as a Base64 string
- */
 function persist() {
   if (!db) return;
   const data = db.export();
@@ -121,9 +121,6 @@ function persist() {
   localStorage.setItem('quantify_sqlite_db', base64);
 }
 
-/**
- * Fetches all counters from the SQLite store
- */
 export function getAllCounters(): Counter[] {
   const res = db.exec("SELECT * FROM counters ORDER BY createdAt DESC");
   if (res.length === 0) return [];
@@ -135,13 +132,12 @@ export function getAllCounters(): Counter[] {
     tags: JSON.parse(row[4]),
     initialCount: row[5],
     goal: row[6],
-    createdAt: row[7]
+    createdAt: row[7],
+    icon: row[8],
+    iconType: (row[9] as 'icon' | 'image') || 'icon'
   }));
 }
 
-/**
- * Fetches all entries from the SQLite store
- */
 export function getAllEntries(): CounterEntry[] {
   const res = db.exec("SELECT * FROM entries ORDER BY timestamp ASC");
   if (res.length === 0) return [];
@@ -153,37 +149,39 @@ export function getAllEntries(): CounterEntry[] {
   }));
 }
 
-/**
- * Adds a new counter via SQL INSERT
- */
 export function addCounter(c: Counter) {
-  db.run("INSERT INTO counters VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [
-    c.id, c.name, c.unit, c.color, JSON.stringify(c.tags), c.initialCount, c.goal || null, c.createdAt
+  db.run("INSERT INTO counters VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
+    c.id, c.name, c.unit, c.color, JSON.stringify(c.tags), c.initialCount, c.goal || null, c.createdAt, c.icon, c.iconType
   ]);
   persist();
 }
 
-/**
- * Deletes a counter and its associated entries via SQL DELETE
- */
+export function updateCounter(c: Counter) {
+  db.run("UPDATE counters SET name=?, unit=?, color=?, tags=?, initialCount=?, goal=?, icon=?, iconType=? WHERE id=?", [
+    c.name, c.unit, c.color, JSON.stringify(c.tags), c.initialCount, c.goal || null, c.icon, c.iconType, c.id
+  ]);
+  persist();
+}
+
 export function deleteCounter(id: string) {
   db.run("DELETE FROM counters WHERE id = ?", [id]);
   db.run("DELETE FROM entries WHERE counterId = ?", [id]);
   persist();
 }
 
-/**
- * Logs a new increment/decrement entry via SQL INSERT
- */
 export function addEntry(e: CounterEntry) {
   db.run("INSERT INTO entries VALUES (?, ?, ?, ?)", [e.id, e.counterId, e.timestamp, e.value]);
   persist();
 }
 
-/**
- * Resets a counter by clearing its entry log via SQL DELETE
- */
 export function clearEntries(counterId: string) {
   db.run("DELETE FROM entries WHERE counterId = ?", [counterId]);
   persist();
+}
+
+export function getUniqueTags(): string[] {
+  const counters = getAllCounters();
+  const tags = new Set<string>();
+  counters.forEach(c => c.tags.forEach(t => tags.add(t)));
+  return Array.from(tags);
 }

@@ -15,6 +15,8 @@ export interface Counter {
   initialCount: number;
   goal?: number;
   createdAt: number;
+  icon?: string; // Font Awesome class or base64 image
+  iconType: 'icon' | 'image';
 }
 
 export type TimeRange = 'Day' | 'Week' | 'Month' | 'Year';

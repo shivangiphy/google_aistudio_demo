@@ -1,24 +1,55 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Counter } from '../types';
 import { PRESET_COLORS } from '../constants';
+import * as DB from '../db';
 
 interface Props {
+  initialData?: Counter;
   onSave: (counter: Counter) => void;
   onCancel: () => void;
 }
 
-const NewCounter: React.FC<Props> = ({ onSave, onCancel }) => {
-  const [name, setName] = useState('');
-  const [unit, setUnit] = useState('Units');
-  const [initialCount, setInitialCount] = useState(0);
-  const [goal, setGoal] = useState<number | ''>('');
-  const [selectedColor, setSelectedColor] = useState(PRESET_COLORS[0]);
-  const [tagInput, setTagInput] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
+const COMMON_ICONS = [
+  'fa-solid fa-star',
+  'fa-solid fa-heart',
+  'fa-solid fa-droplet',
+  'fa-solid fa-coffee',
+  'fa-solid fa-dumbbell',
+  'fa-solid fa-book',
+  'fa-solid fa-bicycle',
+  'fa-solid fa-running',
+  'fa-solid fa-medkit',
+  'fa-solid fa-clock',
+  'fa-solid fa-apple-whole',
+  'fa-solid fa-brain',
+  'fa-solid fa-pills',
+  'fa-solid fa-seedling',
+  'fa-solid fa-bolt',
+];
 
-  const handleAddTag = () => {
-    const trimmed = tagInput.trim();
+const CounterForm: React.FC<Props> = ({ initialData, onSave, onCancel }) => {
+  const isEditing = !!initialData;
+  const [name, setName] = useState(initialData?.name || '');
+  const [unit, setUnit] = useState(initialData?.unit || 'Units');
+  const [initialCount, setInitialCount] = useState(initialData?.initialCount || 0);
+  const [goal, setGoal] = useState<number | ''>(initialData?.goal || '');
+  const [selectedColor, setSelectedColor] = useState(initialData?.color || PRESET_COLORS[0]);
+  const [tagInput, setTagInput] = useState('');
+  const [tags, setTags] = useState<string[]>(initialData?.tags || []);
+  const [allExistingTags, setAllExistingTags] = useState<string[]>([]);
+  
+  // Icon State
+  const [iconType, setIconType] = useState<'icon' | 'image'>(initialData?.iconType || 'icon');
+  const [selectedIcon, setSelectedIcon] = useState(initialData?.icon || COMMON_ICONS[0]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setAllExistingTags(DB.getUniqueTags());
+  }, []);
+
+  const handleAddTag = (text?: string) => {
+    const trimmed = (text || tagInput).trim();
     if (trimmed && !tags.includes(trimmed)) {
       setTags([...tags, trimmed]);
       setTagInput('');
@@ -29,41 +60,119 @@ const NewCounter: React.FC<Props> = ({ onSave, onCancel }) => {
     setTags(tags.filter(t => t !== tag));
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedIcon(reader.result as string);
+        setIconType('image');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSave = () => {
     if (!name.trim()) return;
-    // Fix: Added missing icon and iconType properties to satisfy Counter interface
-    const newCounter: Counter = {
-      id: Math.random().toString(36).substring(7),
+    const counter: Counter = {
+      id: initialData?.id || Math.random().toString(36).substring(7),
       name: name.trim(),
       unit: unit.trim() || 'Units',
       color: selectedColor,
       tags,
       initialCount,
       goal: goal === '' ? undefined : Number(goal),
-      createdAt: Date.now(),
-      icon: 'fa-solid fa-star',
-      iconType: 'icon'
+      createdAt: initialData?.createdAt || Date.now(),
+      icon: selectedIcon,
+      iconType: iconType,
     };
-    onSave(newCounter);
+    onSave(counter);
   };
+
+  const tagSuggestions = useMemo(() => {
+    if (!tagInput.trim()) return [];
+    return allExistingTags.filter(t => 
+      t.toLowerCase().includes(tagInput.toLowerCase()) && !tags.includes(t)
+    );
+  }, [tagInput, allExistingTags, tags]);
 
   return (
     <div className="flex flex-col h-full bg-background-dark text-white">
       <header className="sticky top-0 z-10 bg-background-dark/95 backdrop-blur-md border-b border-gray-800 p-4">
         <div className="flex items-center justify-between">
           <button onClick={onCancel} className="text-slate-400 font-medium px-2 py-1">Cancel</button>
-          <h1 className="text-lg font-bold">Create Counter</h1>
+          <h1 className="text-lg font-bold">{isEditing ? 'Edit Counter' : 'Create Counter'}</h1>
           <button 
             onClick={handleSave}
             disabled={!name.trim()}
             className="text-primary font-bold px-2 py-1 disabled:opacity-30"
           >
-            Done
+            {isEditing ? 'Update' : 'Done'}
           </button>
         </div>
       </header>
 
       <main className="flex-1 p-5 space-y-8 overflow-y-auto no-scrollbar pb-28">
+        <section className="space-y-4">
+          <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Visual Identity</label>
+          <div className="flex items-center gap-6">
+             <div 
+               className="size-20 rounded-full flex items-center justify-center overflow-hidden border-4 border-surface-highlight shadow-inner bg-surface-dark shrink-0"
+               style={{ color: iconType === 'icon' ? selectedColor : 'inherit' }}
+             >
+                {iconType === 'icon' ? (
+                  <i className={`${selectedIcon} text-3xl`}></i>
+                ) : (
+                  <img src={selectedIcon} className="w-full h-full object-cover" alt="Preview" />
+                )}
+             </div>
+             <div className="flex flex-col gap-2">
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Icon Preview</p>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-3 py-1.5 rounded-lg bg-surface-highlight hover:bg-slate-700 text-[10px] font-black uppercase tracking-widest transition-all border border-white/5"
+                  >
+                    Upload Image
+                  </button>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept="image/*" 
+                    onChange={handleFileUpload}
+                  />
+                  {iconType === 'image' && (
+                    <button 
+                      onClick={() => { setIconType('icon'); setSelectedIcon(COMMON_ICONS[0]); }}
+                      className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-[10px] font-black uppercase tracking-widest transition-all border border-red-500/20"
+                    >
+                      Reset Icon
+                    </button>
+                  )}
+                </div>
+             </div>
+          </div>
+
+          <div className="space-y-3">
+             <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
+                {COMMON_ICONS.map(iconClass => (
+                  <button
+                    key={iconClass}
+                    onClick={() => { setSelectedIcon(iconClass); setIconType('icon'); }}
+                    className={`size-10 rounded-xl flex items-center justify-center shrink-0 transition-all border ${
+                      iconType === 'icon' && selectedIcon === iconClass 
+                        ? 'bg-primary text-background-dark border-primary' 
+                        : 'bg-surface-dark text-slate-500 border-white/5 hover:border-slate-600'
+                    }`}
+                  >
+                    <i className={iconClass}></i>
+                  </button>
+                ))}
+             </div>
+          </div>
+        </section>
+
         <section className="space-y-3">
           <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Basic Info</label>
           <div className="space-y-4">
@@ -71,7 +180,7 @@ const NewCounter: React.FC<Props> = ({ onSave, onCancel }) => {
               <input 
                 autoFocus
                 className="block w-full rounded-2xl border-0 bg-surface-dark py-4 px-5 text-lg font-medium text-white ring-1 ring-inset ring-gray-700 focus:ring-2 focus:ring-primary transition-all"
-                placeholder="Counter Name (e.g. Reading)"
+                placeholder="Counter Name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
@@ -81,7 +190,7 @@ const NewCounter: React.FC<Props> = ({ onSave, onCancel }) => {
                 <label className="text-xs font-medium text-slate-500 ml-1">Unit</label>
                 <input 
                   className="block w-full rounded-xl border-0 bg-surface-dark py-3 px-4 text-white ring-1 ring-inset ring-gray-700 focus:ring-2 focus:ring-primary"
-                  placeholder="Pages, km, etc."
+                  placeholder="e.g. Pages"
                   value={unit}
                   onChange={(e) => setUnit(e.target.value)}
                 />
@@ -101,7 +210,7 @@ const NewCounter: React.FC<Props> = ({ onSave, onCancel }) => {
         </section>
 
         <section className="space-y-3">
-          <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Initial Value</label>
+          <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Starting Balance</label>
           <div className="flex items-center justify-between bg-surface-dark rounded-2xl p-2 ring-1 ring-gray-700">
             <button 
               onClick={() => setInitialCount(prev => Math.max(0, prev - 1))}
@@ -120,7 +229,7 @@ const NewCounter: React.FC<Props> = ({ onSave, onCancel }) => {
         </section>
 
         <section className="space-y-3">
-          <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Tags</label>
+          <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Tags & Categorization</label>
           <div className="bg-surface-dark rounded-2xl p-4 ring-1 ring-gray-700 min-h-[80px] flex flex-col gap-3">
             <div className="flex flex-wrap gap-2">
               {tags.map(tag => (
@@ -131,8 +240,8 @@ const NewCounter: React.FC<Props> = ({ onSave, onCancel }) => {
                   </button>
                 </div>
               ))}
-              {tags.length === 0 && <span className="text-slate-600 text-xs italic">No tags added yet</span>}
             </div>
+            
             <div className="flex items-center gap-2 border-t border-gray-700/50 pt-3 mt-auto">
               <span className="material-symbols-outlined text-slate-500 text-lg">tag</span>
               <input 
@@ -142,9 +251,23 @@ const NewCounter: React.FC<Props> = ({ onSave, onCancel }) => {
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
               />
-              <button onClick={handleAddTag} className="text-xs font-black text-primary uppercase p-1">Add</button>
+              <button onClick={() => handleAddTag()} className="text-xs font-black text-primary uppercase p-1">Add</button>
             </div>
           </div>
+          
+          {tagSuggestions.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto no-scrollbar py-2">
+              {tagSuggestions.map(suggestion => (
+                <button
+                  key={suggestion}
+                  onClick={() => handleAddTag(suggestion)}
+                  className="px-3 py-1.5 rounded-lg bg-surface-highlight text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-700 transition-all shrink-0"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="space-y-3">
@@ -172,12 +295,12 @@ const NewCounter: React.FC<Props> = ({ onSave, onCancel }) => {
           disabled={!name.trim()}
           className="w-full flex items-center justify-center gap-3 rounded-2xl bg-primary px-8 py-4 text-lg font-black text-background-dark shadow-xl shadow-primary/25 hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale"
         >
-          <span className="material-symbols-outlined font-black">check_circle</span>
-          Save Counter
+          <span className="material-symbols-outlined font-black">{isEditing ? 'update' : 'check_circle'}</span>
+          {isEditing ? 'Update Counter' : 'Create Counter'}
         </button>
       </div>
     </div>
   );
 };
 
-export default NewCounter;
+export default CounterForm;
