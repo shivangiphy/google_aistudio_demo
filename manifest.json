@@ -1,0 +1,19 @@
+
+{
+  "name": "Quantify Counter",
+  "short_name": "Quantify",
+  "description": "High-performance smart counter and habit tracker.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#101f22",
+  "theme_color": "#101f22",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3589/3589025.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
