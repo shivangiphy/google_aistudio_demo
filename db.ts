@@ -71,7 +71,7 @@ export async function initDB() {
     );
   `);
 
-  // Handle simple column migration for existing databases
+  // Handle migrations for legacy databases
   try {
     db.run("ALTER TABLE counters ADD COLUMN icon TEXT");
   } catch(e) {}
@@ -100,8 +100,8 @@ function seedInitialData() {
       c.initialCount, 
       c.goal || null, 
       c.createdAt,
-      (c as any).icon || 'fa-solid fa-star',
-      (c as any).iconType || 'icon'
+      c.icon || 'fa-solid fa-star',
+      c.iconType || 'icon'
     ]);
   });
 
@@ -129,11 +129,11 @@ export function getAllCounters(): Counter[] {
     name: row[1],
     unit: row[2],
     color: row[3],
-    tags: JSON.parse(row[4]),
+    tags: JSON.parse(row[4] || '[]'),
     initialCount: row[5],
     goal: row[6],
     createdAt: row[7],
-    icon: row[8],
+    icon: row[8] || 'fa-solid fa-star',
     iconType: (row[9] as 'icon' | 'image') || 'icon'
   }));
 }
@@ -151,14 +151,14 @@ export function getAllEntries(): CounterEntry[] {
 
 export function addCounter(c: Counter) {
   db.run("INSERT INTO counters VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
-    c.id, c.name, c.unit, c.color, JSON.stringify(c.tags), c.initialCount, c.goal || null, c.createdAt, c.icon, c.iconType
+    c.id, c.name, c.unit, c.color, JSON.stringify(c.tags), c.initialCount, c.goal || null, c.createdAt, c.icon || 'fa-solid fa-star', c.iconType || 'icon'
   ]);
   persist();
 }
 
 export function updateCounter(c: Counter) {
   db.run("UPDATE counters SET name=?, unit=?, color=?, tags=?, initialCount=?, goal=?, icon=?, iconType=? WHERE id=?", [
-    c.name, c.unit, c.color, JSON.stringify(c.tags), c.initialCount, c.goal || null, c.icon, c.iconType, c.id
+    c.name, c.unit, c.color, JSON.stringify(c.tags), c.initialCount, c.goal || null, c.icon || 'fa-solid fa-star', c.iconType || 'icon', c.id
   ]);
   persist();
 }

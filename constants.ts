@@ -1,4 +1,6 @@
 
+import { Counter, CounterEntry } from './types';
+
 export const PRESET_COLORS = [
   '#2bcdee', // Primary Cyan
   '#ff6b6b', // Red
@@ -11,7 +13,7 @@ export const PRESET_COLORS = [
 
 export const STORAGE_KEY = 'quantify_app_data';
 
-export const INITIAL_DATA = {
+export const INITIAL_DATA: { counters: Counter[], entries: CounterEntry[] } = {
   counters: [
     {
       id: '1',
@@ -21,7 +23,9 @@ export const INITIAL_DATA = {
       tags: ['Health', 'Daily'],
       initialCount: 0,
       goal: 10,
-      createdAt: Date.now() - 86400000 * 7
+      createdAt: Date.now() - 86400000 * 7,
+      icon: 'fa-solid fa-droplet',
+      iconType: 'icon'
     },
     {
       id: '2',
@@ -30,7 +34,9 @@ export const INITIAL_DATA = {
       color: '#ff6b6b',
       tags: ['Fitness'],
       initialCount: 0,
-      createdAt: Date.now() - 86400000 * 7
+      createdAt: Date.now() - 86400000 * 7,
+      icon: 'fa-solid fa-dumbbell',
+      iconType: 'icon'
     },
     {
       id: '3',
@@ -39,7 +45,9 @@ export const INITIAL_DATA = {
       color: '#fb923c',
       tags: ['Health'],
       initialCount: 0,
-      createdAt: Date.now() - 86400000 * 7
+      createdAt: Date.now() - 86400000 * 7,
+      icon: 'fa-solid fa-coffee',
+      iconType: 'icon'
     }
   ],
   entries: [

@@ -13,7 +13,8 @@
     
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,FILL@0..1&display=swap" rel="stylesheet">
+    <!-- Updated Material Symbols link with robust variable font parameters -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..0" />
     <!-- Font Awesome for Counter Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- Load sql.js browser build directly from CDN -->
@@ -47,6 +48,22 @@
             -webkit-tap-highlight-color: transparent;
             overscroll-behavior-y: contain;
         }
+        /* Explicit CSS for Material Symbols to ensure they render as icons */
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
@@ -73,25 +90,19 @@
             window.addEventListener('load', () => {
                 const swPath = './sw.js';
                 try {
-                    // Resolve the full URL of the service worker script
                     const swUrl = new URL(swPath, window.location.href);
-
-                    // Service Workers MUST be served from the same origin.
-                    // In sandboxed environments (like AI Studio), relative paths might resolve 
-                    // to the parent domain, triggering a SecurityError.
                     if (swUrl.origin === window.location.origin) {
                         navigator.serviceWorker.register(swPath)
                             .then(reg => console.log('Service Worker registered successfully', reg.scope))
                             .catch(err => {
-                                // If registration fails due to security/origin mismatch, log a warning instead of an error
                                 if (err.name === 'SecurityError' || err.message.includes('origin')) {
-                                    console.warn('Service Worker registration skipped: Security or origin restriction detected. This is expected in some sandboxed environments.');
+                                    console.warn('Service Worker registration skipped: Security or origin restriction detected.');
                                 } else {
                                     console.error('Service Worker registration failed:', err);
                                 }
                             });
                     } else {
-                        console.warn('Service Worker registration skipped: Script origin (' + swUrl.origin + ') does not match document origin (' + window.location.origin + ').');
+                        console.warn('Service Worker registration skipped: Script origin mismatch.');
                     }
                 } catch (e) {
                     console.warn('Service Worker initialization skipped:', e.message);
