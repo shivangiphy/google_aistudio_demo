@@ -18,5 +18,18 @@
     "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
-  }
+  },
+  "description": "This document outlines the steps to run Quantify locally for development or deploy it as a high-performance mobile application/PWA.",
+  "main": "sw.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/napsternxg/google_aistudio_demo.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/napsternxg/google_aistudio_demo/issues"
+  },
+  "homepage": "https://github.com/napsternxg/google_aistudio_demo#readme"
 }
