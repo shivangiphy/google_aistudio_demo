@@ -71,9 +71,31 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Service Worker registered', reg))
-                    .catch(err => console.error('Service Worker registration failed', err));
+                const swPath = './sw.js';
+                try {
+                    // Resolve the full URL of the service worker script
+                    const swUrl = new URL(swPath, window.location.href);
+
+                    // Service Workers MUST be served from the same origin.
+                    // In sandboxed environments (like AI Studio), relative paths might resolve 
+                    // to the parent domain, triggering a SecurityError.
+                    if (swUrl.origin === window.location.origin) {
+                        navigator.serviceWorker.register(swPath)
+                            .then(reg => console.log('Service Worker registered successfully', reg.scope))
+                            .catch(err => {
+                                // If registration fails due to security/origin mismatch, log a warning instead of an error
+                                if (err.name === 'SecurityError' || err.message.includes('origin')) {
+                                    console.warn('Service Worker registration skipped: Security or origin restriction detected. This is expected in some sandboxed environments.');
+                                } else {
+                                    console.error('Service Worker registration failed:', err);
+                                }
+                            });
+                    } else {
+                        console.warn('Service Worker registration skipped: Script origin (' + swUrl.origin + ') does not match document origin (' + window.location.origin + ').');
+                    }
+                } catch (e) {
+                    console.warn('Service Worker initialization skipped:', e.message);
+                }
             });
         }
     </script>
