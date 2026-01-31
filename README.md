@@ -4,7 +4,6 @@ This document outlines the steps to run Quantify locally for development or depl
 
 ## 1. Local Development (Web App)
 
-
 To run this project on your machine for development or testing:
 
 ### Prerequisites
