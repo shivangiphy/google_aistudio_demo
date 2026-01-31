@@ -12,7 +12,8 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 3000,
-      host: '0.0.0.0',
+      host: '127.0.0.1',
+      hmr: false // Disable HMR when using VS Code Live Preview
     },
     plugins: [react()],
     define: {
