@@ -3,18 +3,17 @@ const CACHE_NAME = 'quantify-v1';
 const ASSETS = [
   './',
   './index.html',
-  './manifest.json',
-  'https://cdn.tailwindcss.com?plugins=forms,container-queries',
-  'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.wasm',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css'
+  './manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
-    })
+      return cache.addAll(ASSETS).catch((error) => {
+        console.error('Failed to cache assets during install:', error);
+        // Don't fail installation if caching fails
+      });
+    }).then(() => self.skipWaiting())
   );
 });
 
